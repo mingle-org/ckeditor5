@@ -1,6 +1,6 @@
 {
-  "name": "@ckeditor/ckeditor5-build-classic",
-  "version": "38.0.1",
+  "name": "@mingleats/ckeditor5-build-classic",
+  "version": "1.0.3",
   "description": "The classic editor build of CKEditor 5 – the best browser-based rich text editor.",
   "keywords": [
     "ckeditor5-build",
@@ -47,9 +47,12 @@
     "@ckeditor/ckeditor5-paragraph": "^38.0.1",
     "@ckeditor/ckeditor5-paste-from-office": "^38.0.1",
     "@ckeditor/ckeditor5-table": "^38.0.1",
-    "@ckeditor/ckeditor5-typing": "^38.0.1"
+    "@ckeditor/ckeditor5-typing": "^38.0.1",
+    "@ckeditor/ckeditor5-mention": "^38.0.1",
+    "@ckeditor/ckeditor5-upload": "^38.0.0"
   },
   "devDependencies": {
+    "@ckeditor/ckeditor5-alignment": "^38.0.1",
     "@ckeditor/ckeditor5-core": "^38.0.1",
     "@ckeditor/ckeditor5-dev-translations": "^37.0.0",
     "@ckeditor/ckeditor5-dev-utils": "^37.0.0",
