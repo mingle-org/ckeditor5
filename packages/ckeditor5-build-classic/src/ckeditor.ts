@@ -60,7 +60,7 @@ export default class ClassicEditor extends ClassicEditorBase {
     TextTransformation,
     SimpleUploadAdapter,
     Mention,
-    Alignment
+    Alignment,
   ];
 
   public static override defaultConfig = {
@@ -103,6 +103,6 @@ export default class ClassicEditor extends ClassicEditorBase {
       ]
     },
     // This value must be kept in sync with the language defined in webpack.config.js.
-    language: 'en'
+    language: 'en',
   };
 }
