@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -7,7 +7,7 @@
  * @module core/pendingactions
  */
 
-import ContextPlugin from './contextplugin';
+import ContextPlugin from './contextplugin.js';
 
 import {
 	CKEditorError,
@@ -79,8 +79,8 @@ export default class PendingActions extends ContextPlugin implements Iterable<Pe
 	/**
 	 * @inheritDoc
 	 */
-	public static get pluginName(): 'PendingActions' {
-		return 'PendingActions';
+	public static get pluginName() {
+		return 'PendingActions' as const;
 	}
 
 	/**

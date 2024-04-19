@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -21,25 +21,28 @@ import {
 	View,
 	ViewCollection,
 	type FocusableView,
-	type NormalizedColorOption
-} from 'ckeditor5/src/ui';
+	type NormalizedColorOption,
+	type ColorPickerConfig,
+	type FocusCyclerBackwardCycleEvent,
+	type FocusCyclerForwardCycleEvent
+} from 'ckeditor5/src/ui.js';
 import {
 	KeystrokeHandler,
 	FocusTracker,
 	type Locale,
 	type ObservableChangeEvent
-} from 'ckeditor5/src/utils';
-import { icons } from 'ckeditor5/src/core';
+} from 'ckeditor5/src/utils.js';
+import { icons } from 'ckeditor5/src/core.js';
 
 import {
 	fillToolbar,
 	getBorderStyleDefinitions,
 	getBorderStyleLabels,
 	getLabeledColorInputCreator
-} from '../../utils/ui/table-properties';
-import FormRowView from '../../ui/formrowview';
-import type ColorInputView from '../../ui/colorinputview';
-import type { TableCellPropertiesOptions } from '../../tableconfig';
+} from '../../utils/ui/table-properties.js';
+import FormRowView from '../../ui/formrowview.js';
+import type ColorInputView from '../../ui/colorinputview.js';
+import type { TableCellPropertiesOptions } from '../../tableconfig.js';
 
 import '../../../theme/form.css';
 import '../../../theme/tableform.css';
@@ -59,6 +62,7 @@ export interface TableCellPropertiesViewOptions {
 	borderColors: Array<NormalizedColorOption>;
 	backgroundColors: Array<NormalizedColorOption>;
 	defaultTableCellProperties: TableCellPropertiesOptions;
+	colorPickerConfig: false | ColorPickerConfig;
 }
 
 /**
@@ -196,12 +200,12 @@ export default class TableCellPropertiesView extends View {
 	/**
 	 * A toolbar with buttons that allow changing the horizontal text alignment in a table cell.
 	 */
-	public readonly horizontalAlignmentToolbar: View<HTMLElement>;
+	public readonly horizontalAlignmentToolbar: ToolbarView;
 
 	/**
 	 * A toolbar with buttons that allow changing the vertical text alignment in a table cell.
 	 */
-	public readonly verticalAlignmentToolbar: View<HTMLElement>;
+	public readonly verticalAlignmentToolbar: ToolbarView;
 
 	/**
 	 * The "Save" button view.
@@ -216,7 +220,7 @@ export default class TableCellPropertiesView extends View {
 	/**
 	 * A collection of views that can be focused in the form.
 	 */
-	protected readonly _focusables: ViewCollection;
+	protected readonly _focusables: ViewCollection<FocusableView>;
 
 	/**
 	 * Helps cycling over {@link #_focusables} in the form.
@@ -388,13 +392,24 @@ export default class TableCellPropertiesView extends View {
 			view: this
 		} );
 
+		// Maintain continuous focus cycling over views that have focusable children and focus cyclers themselves.
+		[ this.borderColorInput, this.backgroundInput ].forEach( view => {
+			view.fieldView.focusCycler.on<FocusCyclerForwardCycleEvent>( 'forwardCycle', evt => {
+				this._focusCycler.focusNext();
+				evt.stop();
+			} );
+
+			view.fieldView.focusCycler.on<FocusCyclerBackwardCycleEvent>( 'backwardCycle', evt => {
+				this._focusCycler.focusPrevious();
+				evt.stop();
+			} );
+		} );
+
 		[
 			this.borderStyleDropdown,
 			this.borderColorInput,
-			this.borderColorInput.fieldView.dropdownView.buttonView,
 			this.borderWidthInput,
 			this.backgroundInput,
-			this.backgroundInput.fieldView.dropdownView.buttonView,
 			this.widthInput,
 			this.heightInput,
 			this.paddingInput,
@@ -454,7 +469,8 @@ export default class TableCellPropertiesView extends View {
 		const colorInputCreator = getLabeledColorInputCreator( {
 			colorConfig: this.options.borderColors,
 			columns: 5,
-			defaultColorValue: defaultBorder.color
+			defaultColorValue: defaultBorder.color,
+			colorPickerConfig: this.options.colorPickerConfig
 		} );
 		const locale = this.locale;
 		const t = this.t!;
@@ -571,7 +587,8 @@ export default class TableCellPropertiesView extends View {
 		const colorInputCreator = getLabeledColorInputCreator( {
 			colorConfig: this.options.backgroundColors,
 			columns: 5,
-			defaultColorValue: this.options.defaultTableCellProperties.backgroundColor
+			defaultColorValue: this.options.defaultTableCellProperties.backgroundColor,
+			colorPickerConfig: this.options.colorPickerConfig
 		} );
 
 		const backgroundInput = new LabeledFieldView( locale, colorInputCreator );

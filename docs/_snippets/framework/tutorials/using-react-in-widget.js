@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -9,7 +9,7 @@ import Babel from 'babel-standalone';
 
 // Imports necessary to run a React application.
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 // The official <CKEditor> component for React.
 import { CKEditor } from '@ckeditor/ckeditor5-react';
@@ -149,7 +149,7 @@ class InsertProductPreviewCommand extends Command {
 Object.assign( window, {
 	Babel,
 	React,
-	ReactDOM,
+	createRoot,
 	CKEditor,
 	ClassicEditor,
 	Essentials,

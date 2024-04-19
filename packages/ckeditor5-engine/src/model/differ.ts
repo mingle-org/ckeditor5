@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -7,23 +7,24 @@
  * @module engine/model/differ
  */
 
-import Position from './position';
-import Range from './range';
+import Position from './position.js';
+import Range from './range.js';
 
-import type { default as MarkerCollection, MarkerData } from './markercollection';
-import type AttributeOperation from './operation/attributeoperation';
-import type DocumentFragment from './documentfragment';
-import type Element from './element';
-import type InsertOperation from './operation/insertoperation';
-import type Item from './item';
-import type MergeOperation from './operation/mergeoperation';
-import type MoveOperation from './operation/moveoperation';
-import type Node from './node';
-import type Operation from './operation/operation';
-import type RenameOperation from './operation/renameoperation';
-import type SplitOperation from './operation/splitoperation';
-import type RootOperation from './operation/rootoperation';
-import type RootAttributeOperation from './operation/rootattributeoperation';
+import type { default as MarkerCollection, MarkerData } from './markercollection.js';
+import type AttributeOperation from './operation/attributeoperation.js';
+import type DocumentFragment from './documentfragment.js';
+import type Element from './element.js';
+import type InsertOperation from './operation/insertoperation.js';
+import type Item from './item.js';
+import type MergeOperation from './operation/mergeoperation.js';
+import type MoveOperation from './operation/moveoperation.js';
+import type Node from './node.js';
+import type RootElement from './rootelement.js';
+import type Operation from './operation/operation.js';
+import type RenameOperation from './operation/renameoperation.js';
+import type SplitOperation from './operation/splitoperation.js';
+import type RootOperation from './operation/rootoperation.js';
+import type RootAttributeOperation from './operation/rootattributeoperation.js';
 
 /**
  * Calculates the difference between two model states.
@@ -52,8 +53,7 @@ export default class Differ {
 	 * the first change was applied on that element. Snapshot items are objects with two properties: `name`,
 	 * containing the element name (or `'$text'` for a text node) and `attributes` which is a map of the node's attributes.
 	 */
-	private readonly _elementSnapshots: Map<Element | DocumentFragment, Array<{ name: string; attributes: Map<string, unknown> }>>
-		= new Map();
+	private readonly _elementSnapshots: Map<Element | DocumentFragment, Array<DifferSnapshot>> = new Map();
 
 	/**
 	 * A map that stores all changed markers.
@@ -138,6 +138,9 @@ export default class Differ {
 			RootAttributeOperation
 		);
 
+		// Note: an operation that happens inside a non-loaded root will be ignored. If the operation happens partially inside
+		// a non-loaded root, that part will be ignored (this may happen for move or marker operations).
+		//
 		switch ( operation.type ) {
 			case 'insert': {
 				if ( this._isInInsertedElement( operation.position.parent ) ) {
@@ -248,6 +251,17 @@ export default class Differ {
 			}
 			case 'detachRoot':
 			case 'addRoot': {
+				const root = operation.affectedSelectable as RootElement;
+
+				if ( !root._isLoaded ) {
+					return;
+				}
+
+				// Don't buffer if the root state does not change.
+				if ( root.isAttached() == operation.isAdd ) {
+					return;
+				}
+
 				this._bufferRootStateChange( operation.rootName, operation.isAdd );
 
 				break;
@@ -255,6 +269,10 @@ export default class Differ {
 			case 'addRootAttribute':
 			case 'removeRootAttribute':
 			case 'changeRootAttribute': {
+				if ( !operation.root._isLoaded ) {
+					return;
+				}
+
 				const rootName = operation.root.rootName;
 
 				this._bufferRootAttributeChange( rootName, operation.key, operation.oldValue, operation.newValue );
@@ -275,21 +293,28 @@ export default class Differ {
 	 * @param newMarkerData Marker data after the change.
 	 */
 	public bufferMarkerChange( markerName: string, oldMarkerData: MarkerData, newMarkerData: MarkerData ): void {
-		const buffered = this._changedMarkers.get( markerName );
+		if ( oldMarkerData.range && oldMarkerData.range.root.is( 'rootElement' ) && !oldMarkerData.range.root._isLoaded ) {
+			oldMarkerData.range = null;
+		}
+
+		if ( newMarkerData.range && newMarkerData.range.root.is( 'rootElement' ) && !newMarkerData.range.root._isLoaded ) {
+			newMarkerData.range = null;
+		}
+
+		let buffered = this._changedMarkers.get( markerName );
 
 		if ( !buffered ) {
-			this._changedMarkers.set( markerName, {
-				newMarkerData,
-				oldMarkerData
-			} );
+			buffered = { newMarkerData, oldMarkerData };
+
+			this._changedMarkers.set( markerName, buffered );
 		} else {
 			buffered.newMarkerData = newMarkerData;
+		}
 
-			if ( buffered.oldMarkerData.range == null && newMarkerData.range == null ) {
-				// The marker is going to be removed (`newMarkerData.range == null`) but it did not exist before the first buffered change
-				// (`buffered.oldMarkerData.range == null`). In this case, do not keep the marker in buffer at all.
-				this._changedMarkers.delete( markerName );
-			}
+		if ( buffered.oldMarkerData.range == null && newMarkerData.range == null ) {
+			// The marker is going to be removed (`newMarkerData.range == null`) but it did not exist before the first buffered change
+			// (`buffered.oldMarkerData.range == null`). In this case, do not keep the marker in buffer at all.
+			this._changedMarkers.delete( markerName );
 		}
 	}
 
@@ -360,7 +385,7 @@ export default class Differ {
 	 * * changes of markers' `affectsData` property.
 	 */
 	public hasDataChanges(): boolean {
-		if ( this._changesInElement.size > 0 ) {
+		if ( this.getChanges().length ) {
 			return true;
 		}
 
@@ -627,7 +652,7 @@ export default class Differ {
 		const diffItem = this._changedRoots.get( rootName )!;
 
 		if ( diffItem.state !== undefined ) {
-			// Root `state` can only toggle between of the values ('attached' or 'detached') and no value. It cannot be any other way,
+			// Root `state` can only toggle between one of the values and no value. It cannot be any other way,
 			// because if the root was originally attached it can only become detached. Then, if it is re-attached in the same batch of
 			// changes, it gets back to "no change" (which means no value). Same if the root was originally detached.
 			delete diffItem.state;
@@ -710,9 +735,50 @@ export default class Differ {
 	}
 
 	/**
+	 * Buffers all the data related to given root like it was all just added to the editor.
+	 *
+	 * Following changes are buffered:
+	 *
+	 * * root is attached,
+	 * * all root content is inserted,
+	 * * all root attributes are added,
+	 * * all markers inside the root are added.
+	 *
+	 * @internal
+	 */
+	public _bufferRootLoad( root: RootElement ): void {
+		if ( !root.isAttached() ) {
+			return;
+		}
+
+		this._bufferRootStateChange( root.rootName, true );
+		this._markInsert( root, 0, root.maxOffset );
+
+		// Buffering root attribute changes makes sense and is actually needed, even though we buffer root state change above.
+		// Because the root state change is buffered, the root attributes changes are not returned by the differ.
+		// But, if the root attribute is removed in the same change block, or the root is detached, then the differ results would be wrong.
+		//
+		for ( const key of root.getAttributeKeys() ) {
+			this._bufferRootAttributeChange( root.rootName, key, null, root.getAttribute( key ) );
+		}
+
+		for ( const marker of this._markerCollection ) {
+			if ( marker.getRange().root == root ) {
+				const markerData = marker.getData();
+
+				this.bufferMarkerChange( marker.name, { ...markerData, range: null }, markerData );
+			}
+		}
+	}
+
+	/**
 	 * Saves and handles an insert change.
 	 */
 	private _markInsert( parent: Element | DocumentFragment, offset: number, howMany: number ) {
+		if ( parent.root.is( 'rootElement' ) && !parent.root._isLoaded ) {
+			return;
+		}
+
 		const changeItem = { type: 'insert', offset, howMany, count: this._changeCount++ } as const;
 
 		this._markChange( parent, changeItem );
@@ -722,6 +788,10 @@ export default class Differ {
 	 * Saves and handles a remove change.
 	 */
 	private _markRemove( parent: Element | DocumentFragment, offset: number, howMany: number ) {
+		if ( parent.root.is( 'rootElement' ) && !parent.root._isLoaded ) {
+			return;
+		}
+
 		const changeItem = { type: 'remove', offset, howMany, count: this._changeCount++ } as const;
 
 		this._markChange( parent, changeItem );
@@ -733,6 +803,10 @@ export default class Differ {
 	 * Saves and handles an attribute change.
 	 */
 	private _markAttribute( item: Item ): void {
+		if ( item.root.is( 'rootElement' ) && !item.root._isLoaded ) {
+			return;
+		}
+
 		const changeItem = { type: 'attribute', offset: item.startOffset!, howMany: item.offsetSize, count: this._changeCount++ } as const;
 
 		this._markChange( item.parent as Element, changeItem );
@@ -1026,7 +1100,7 @@ export default class Differ {
 	private _getInsertDiff(
 		parent: Element | DocumentFragment,
 		offset: number,
-		elementSnapshot: { name: string; attributes: Map<string, unknown> }
+		elementSnapshot: DifferSnapshot
 	): DiffItemInsert & DiffItemInternal {
 		return {
 			type: 'insert',
@@ -1034,7 +1108,8 @@ export default class Differ {
 			name: elementSnapshot.name,
 			attributes: new Map( elementSnapshot.attributes ),
 			length: 1,
-			changeCount: this._changeCount++
+			changeCount: this._changeCount++,
+			_element: elementSnapshot.element
 		};
 	}
 
@@ -1049,7 +1124,7 @@ export default class Differ {
 	private _getRemoveDiff(
 		parent: Element | DocumentFragment,
 		offset: number,
-		elementSnapshot: { name: string; attributes: Map<string, unknown> }
+		elementSnapshot: DifferSnapshot
 	): DiffItemRemove & DiffItemInternal {
 		return {
 			type: 'remove',
@@ -1057,7 +1132,8 @@ export default class Differ {
 			name: elementSnapshot.name,
 			attributes: new Map( elementSnapshot.attributes ),
 			length: 1,
-			changeCount: this._changeCount++
+			changeCount: this._changeCount++,
+			_element: elementSnapshot.element
 		};
 	}
 
@@ -1176,8 +1252,8 @@ interface ChangeItem {
  * Returns an array that is a copy of passed child list with the exception that text nodes are split to one or more
  * objects, each representing one character and attributes set on that character.
  */
-function _getChildrenSnapshot( children: Iterable<Node> ) {
-	const snapshot = [];
+function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot> {
+	const snapshot: Array<DifferSnapshot> = [];
 
 	for ( const child of children ) {
 		if ( child.is( '$text' ) ) {
@@ -1190,7 +1266,8 @@ function _getChildrenSnapshot( children: Iterable<Node> ) {
 		} else {
 			snapshot.push( {
 				name: ( child as Element ).name,
-				attributes: new Map( child.getAttributes() )
+				attributes: new Map( child.getAttributes() ),
+				element: child as Element
 			} );
 		}
 	}
@@ -1310,6 +1387,12 @@ function _changesInGraveyardFilter( entry: DiffItem ) {
 	return !posInGy && !rangeInGy;
 }
 
+interface DifferSnapshot {
+	element?: Element;
+	name: string;
+	attributes: Map<string, unknown>;
+}
+
 /**
  * The single diff item.
  *
@@ -1330,6 +1413,15 @@ export interface DiffItemInsert {
 	 * The type of diff item.
 	 */
 	type: 'insert';
+
+	/**
+	 * Reference to the model element that was inserted.
+	 *
+	 * Undefined if the diff item is related to text node insertion.
+	 *
+	 * @internal
+	 */
+	_element?: Element;
 
 	/**
 	 * The name of the inserted elements or `'$text'` for a text node.
@@ -1361,6 +1453,26 @@ export interface DiffItemRemove {
 	 * The type of diff item.
 	 */
 	type: 'remove';
+
+	/**
+	 * Reference to the model element that was removed.
+	 *
+	 * Undefined if the diff item is related to text node deletion.
+	 *
+	 * Note that this element will have the state after all changes has been performed on the model, not before. For example, if a paragraph
+	 * was first renamed to `heading1`, and then removed, `element.name` will be `heading1`. Similarly, with attributes. Also, you should
+	 * not read the element's position, as it will no longer point to the original element position.
+	 *
+	 * Instead, you should use {@link ~DiffItemRemove#name `DiffItemRemove#name`},
+	 * {@link ~DiffItemRemove#attributes `DiffItemRemove#attributes`}, and {@link ~DiffItemRemove#position `DiffItemRemove#position`}.
+	 *
+	 * This property should be only used to check instance reference equality. For example, if you want to detect that some particular
+	 * element was removed, you can check `_element` property. You can use it together with {@link ~DiffItemInsert#_element `#_element`} on
+	 * insert diff items to detect move, refresh, or rename changes.
+	 *
+	 * @internal
+	 */
+	_element?: Element;
 
 	/**
 	 * The name of the removed element or `'$text'` for a text node.

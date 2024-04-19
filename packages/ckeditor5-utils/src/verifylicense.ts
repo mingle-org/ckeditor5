@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -7,7 +7,7 @@
  * @module utils/verifylicense
  */
 
-import { releaseDate } from './version';
+import { releaseDate } from './version.js';
 
 /**
  * Possible states of the key after verification.
@@ -33,7 +33,7 @@ export default function verifyLicense( token: string | undefined ): VerifiedKeyS
 	// Please keep this code intact. Thank you for your understanding.
 
 	function oldTokenCheck( token: string ): VerifiedKeyStatus {
-		if ( token.match( /^[a-zA-Z0-9+/=$]+$/g ) && ( token.length >= 40 && token.length <= 255 ) ) {
+		if ( token.length >= 40 && token.length <= 255 ) {
 			return 'VALID';
 		} else {
 			return 'INVALID';
@@ -41,12 +41,12 @@ export default function verifyLicense( token: string | undefined ): VerifiedKeyS
 	}
 
 	// TODO: issue ci#3175
-	let decryptedData = '';
-	let decryptedSecondElement = '';
 
 	if ( !token ) {
 		return 'INVALID';
 	}
+
+	let decryptedData = '';
 
 	try {
 		decryptedData = atob( token );
@@ -81,14 +81,10 @@ export default function verifyLicense( token: string | undefined ): VerifiedKeyS
 		return 'INVALID';
 	}
 
-	try {
-		// Must be a valid format.
-		atob( firstElement );
-	} catch ( e ) {
-		return 'INVALID';
-	}
+	let decryptedSecondElement = '';
 
 	try {
+		atob( firstElement );
 		decryptedSecondElement = atob( secondElement );
 	} catch ( e ) {
 		return 'INVALID';

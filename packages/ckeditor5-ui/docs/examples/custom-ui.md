@@ -2,12 +2,13 @@
 category: examples-framework
 order: 100
 toc: false
+meta-title: Custom UI with Bootstrap example | CKEditor 5 Documentation
 classes: main__content--no-toc
 ---
 
 # Custom UI (with Bootstrap)
 
-The editor below runs a completely custom user interface written in [Bootstrap](http://getbootstrap.com/), while the editing is provided by CKEditor 5. To learn more, check out the {@link framework/external-ui detailed guide} on how to integrate an external UI with the editor.
+The editor below runs a completely custom user interface written in [Bootstrap](http://getbootstrap.com/), while the editing is provided by CKEditor&nbsp;5. To learn more, check out the {@link framework/external-ui detailed guide} on how to integrate an external UI with the editor.
 
 {@snippet examples/bootstrap-ui}
 ## Editor example configuration
@@ -22,7 +23,7 @@ import { EditorUI, EditorUIView, InlineEditableUIView } from '@ckeditor/ckeditor
 import { ElementReplacer } from '@ckeditor/ckeditor5-utils';
 
 // Interfaces to extend basic Editor API.
-import { DataApiMixin, ElementApiMixin } from '@ckeditor/ckeditor5-core';
+import { ElementApiMixin } from '@ckeditor/ckeditor5-core';
 
 // Helper function for adding interfaces to the Editor class.
 import { mix } from '@ckeditor/ckeditor5-utils';
@@ -50,7 +51,7 @@ import { EasyImage } from '@ckeditor/ckeditor5-easy-image';
 import { Image, ImageUpload } from '@ckeditor/ckeditor5-image';
 
 // Extending the Editor class, which brings base editor API.
-export default class BootstrapEditor extends Editor {
+export default class BootstrapEditor extends ElementApiMixin( Editor ) {
 	constructor( element, config ) {
 		super( config );
 
@@ -95,10 +96,6 @@ export default class BootstrapEditor extends Editor {
 		} );
 	}
 }
-
-// Mixing interfaces, which extends basic editor API.
-mix( BootstrapEditor, DataApiMixin );
-mix( BootstrapEditor, ElementApiMixin );
 
 // The class organizing the UI of the editor, binding it with existing Bootstrap elements in DOM.
 class BootstrapEditorUI extends EditorUI {
