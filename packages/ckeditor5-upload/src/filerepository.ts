@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -23,7 +23,7 @@ import {
 	type CollectionChangeEvent
 } from '@ckeditor/ckeditor5-utils';
 
-import FileReader from './filereader';
+import FileReader from './filereader.js';
 
 /**
  * File repository plugin. A central point for managing file upload.
@@ -96,8 +96,8 @@ export default class FileRepository extends Plugin {
 	/**
 	 * @inheritDoc
 	 */
-	public static get pluginName(): 'FileRepository' {
-		return 'FileRepository';
+	public static get pluginName() {
+		return 'FileRepository' as const;
 	}
 
 	/**

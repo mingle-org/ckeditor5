@@ -1,11 +1,11 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
 /* globals ClassicEditor, console, window, document */
 
-import { CS_CONFIG } from '@ckeditor/ckeditor5-cloud-services/tests/_utils/cloud-services-config';
+import { CS_CONFIG } from '@ckeditor/ckeditor5-cloud-services/tests/_utils/cloud-services-config.js';
 
 const contactsContainer = document.querySelector( '.contacts' );
 
@@ -111,7 +111,7 @@ contacts.forEach( ( contact, id ) => {
 
 	li.innerHTML =
 		`<div class="contact h-card" data-contact="${ id }" draggable="true">` +
-		`<img src="../../assets/img/${ contact.avatar }.png" alt="avatar" class="u-photo" draggable="false" />` +
+		`<img src="../assets/img/${ contact.avatar }.png" alt="avatar" class="u-photo" draggable="false" />` +
 		contact.name +
 		'</div>';
 

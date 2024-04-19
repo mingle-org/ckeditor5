@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -9,22 +9,24 @@
 
 /* globals console */
 
-import ComponentFactory from '../componentfactory';
-import TooltipManager from '../tooltipmanager';
-import PoweredBy from './poweredby';
+import ComponentFactory from '../componentfactory.js';
+import TooltipManager from '../tooltipmanager.js';
+import PoweredBy from './poweredby.js';
+import AriaLiveAnnouncer from '../arialiveannouncer.js';
 
-import type EditorUIView from './editoruiview';
-import type ToolbarView from '../toolbar/toolbarview';
-import type { UIViewRenderEvent } from '../view';
+import type EditorUIView from './editoruiview.js';
+import type ToolbarView from '../toolbar/toolbarview.js';
+import type { UIViewRenderEvent } from '../view.js';
 
 import {
 	ObservableMixin,
 	isVisible,
-	FocusTracker
+	FocusTracker,
+	type EventInfo
 } from '@ckeditor/ckeditor5-utils';
 
 import type { Editor } from '@ckeditor/ckeditor5-core';
-import type { ViewDocumentLayoutChangedEvent } from '@ckeditor/ckeditor5-engine';
+import type { ViewDocumentLayoutChangedEvent, ViewScrollToTheSelectionEvent } from '@ckeditor/ckeditor5-engine';
 
 /**
  * A class providing the minimal interface that is required to successfully bootstrap any editor UI.
@@ -56,6 +58,12 @@ export default abstract class EditorUI extends ObservableMixin() {
 	 * A helper that enables the "powered by" feature in the editor and renders a link to the project's webpage.
 	 */
 	public readonly poweredBy: PoweredBy;
+
+	/**
+	 * A helper that manages the content of an `aria-live` regions used by editor features to announce status changes
+	 * to screen readers.
+	 */
+	public readonly ariaLiveAnnouncer: AriaLiveAnnouncer;
 
 	/**
 	 * Indicates the UI is ready. Set `true` after {@link #event:ready} event is fired.
@@ -122,11 +130,14 @@ export default abstract class EditorUI extends ObservableMixin() {
 	constructor( editor: Editor ) {
 		super();
 
+		const editingView = editor.editing.view;
+
 		this.editor = editor;
 		this.componentFactory = new ComponentFactory( editor );
 		this.focusTracker = new FocusTracker();
 		this.tooltipManager = new TooltipManager( editor );
 		this.poweredBy = new PoweredBy( editor );
+		this.ariaLiveAnnouncer = new AriaLiveAnnouncer( editor );
 
 		this.set( 'viewportOffset', this._readViewportOffsetFromConfig() );
 
@@ -135,7 +146,8 @@ export default abstract class EditorUI extends ObservableMixin() {
 		} );
 
 		// Informs UI components that should be refreshed after layout change.
-		this.listenTo<ViewDocumentLayoutChangedEvent>( editor.editing.view.document, 'layoutChanged', () => this.update() );
+		this.listenTo<ViewDocumentLayoutChangedEvent>( editingView.document, 'layoutChanged', this.update.bind( this ) );
+		this.listenTo<ViewScrollToTheSelectionEvent>( editingView, 'scrollToTheSelection', this._handleScrollToTheSelection.bind( this ) );
 
 		this._initFocusTracking();
 	}
@@ -517,6 +529,31 @@ export default abstract class EditorUI extends ObservableMixin() {
 		toolbarView.focus();
 
 		return true;
+	}
+
+	/**
+	 * Provides an integration between {@link #viewportOffset} and {@link module:utils/dom/scroll~scrollViewportToShowTarget}.
+	 * It allows the UI-agnostic engine method to consider user-configured viewport offsets specific for the integration.
+	 *
+	 * @param evt The `scrollToTheSelection` event info.
+	 * @param data The payload carried by the `scrollToTheSelection` event.
+	 */
+	private _handleScrollToTheSelection(
+		evt: EventInfo<'scrollToTheSelection'>,
+		data: ViewScrollToTheSelectionEvent[ 'args' ][ 0 ]
+	): void {
+		const configuredViewportOffset = {
+			top: 0,
+			bottom: 0,
+			left: 0,
+			right: 0,
+			...this.viewportOffset
+		};
+
+		data.viewportOffset.top += configuredViewportOffset.top;
+		data.viewportOffset.bottom += configuredViewportOffset.bottom;
+		data.viewportOffset.left += configuredViewportOffset.left;
+		data.viewportOffset.right += configuredViewportOffset.right;
 	}
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -191,6 +191,21 @@ It breaks CKEditor 5 (see how <p><code>[]</code></p> looks). */
 	to {
 		opacity: 1;
 	}
+}
+
+.ck.ck-editor__editable.ck-show-blocks ul,
+.ck.ck-editor__editable.ck-show-blocks ol {
+	padding-inline-start: 40px;
+}
+
+.ck.ck-editor__editable.ck-show-blocks[dir=ltr] ul,
+.ck.ck-editor__editable.ck-show-blocks[dir=ltr] ol {
+	margin-left: 0;
+}
+
+.ck.ck-editor__editable.ck-show-blocks[dir=rtl] ul,
+.ck.ck-editor__editable.ck-show-blocks[dir=rtl] ol {
+	margin-right: 0;
 }
 
 /* examples/builds/inline-editor.html */

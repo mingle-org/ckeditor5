@@ -1,13 +1,18 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
 // The editor creator to use.
 import { ClassicEditor as ClassicEditorBase } from '@ckeditor/ckeditor5-editor-classic';
 
+<<<<<<< HEAD
 import { UploadAdapter } from '@ckeditor/ckeditor5-adapter-ckfinder';
 import { Alignment } from '@ckeditor/ckeditor5-alignment';
+=======
+import { Essentials } from '@ckeditor/ckeditor5-essentials';
+import { CKFinderUploadAdapter } from '@ckeditor/ckeditor5-adapter-ckfinder';
+>>>>>>> stable
 import { Autoformat } from '@ckeditor/ckeditor5-autoformat';
 import { Bold, Italic } from '@ckeditor/ckeditor5-basic-styles';
 import { BlockQuote } from '@ckeditor/ckeditor5-block-quote';
@@ -30,6 +35,7 @@ import { TextTransformation } from '@ckeditor/ckeditor5-typing';
 import { SimpleUploadAdapter } from '@ckeditor/ckeditor5-upload';
 
 export default class ClassicEditor extends ClassicEditorBase {
+<<<<<<< HEAD
   public static override builtinPlugins = [
     Essentials,
     UploadAdapter,
@@ -62,6 +68,36 @@ export default class ClassicEditor extends ClassicEditorBase {
     Mention,
     Alignment,
   ];
+=======
+	public static override builtinPlugins = [
+		Essentials,
+		CKFinderUploadAdapter,
+		Autoformat,
+		Bold,
+		Italic,
+		BlockQuote,
+		CKBox,
+		CKFinder,
+		CloudServices,
+		EasyImage,
+		Heading,
+		Image,
+		ImageCaption,
+		ImageStyle,
+		ImageToolbar,
+		ImageUpload,
+		Indent,
+		Link,
+		List,
+		MediaEmbed,
+		Paragraph,
+		PasteFromOffice,
+		PictureEditing,
+		Table,
+		TableToolbar,
+		TextTransformation
+	];
+>>>>>>> stable
 
   public static override defaultConfig = {
     toolbar: {
